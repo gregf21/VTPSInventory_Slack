@@ -50,14 +50,51 @@ namespace VTPSInventory
 
             var response = request.Execute();
             IList<IList<object>> values = response.Values;
+            String[,] dataArray;
             if (values != null && values.Count > 0)
             {
-                foreach (var row in values)
+                dataArray = convertIListToArray(values);
+
+
+                //Work within this big ass statement
+                String line = "";
+
+                for (int r = 0; r < dataArray.GetLength(0); r++)
                 {
-                    Console.Write(row[0]);
+                    for(int c = 0; c < dataArray.GetLength(1); c++)
+                    {
+                        line = line + dataArray[r, c] + "\t";
+                    }
+
+                    line = "\n";
+
                 }
+
             }
+
+            
+
             Console.ReadKey();
+            
+        }
+
+
+        private static String[,] convertIListToArray(IList<IList<object>> values)
+        {
+            String[,] dataArray = new String[values.Count, values[0].Count];
+
+            int r = 0, c = 0;
+            foreach (var row in values)
+            {
+                foreach (String dataEntry in row)
+                {
+                    dataArray[r, c] = dataEntry;
+                    c++;
+                }
+                r++;
+                c = 0;
+            }
+            return dataArray;
         }
     }
 }
