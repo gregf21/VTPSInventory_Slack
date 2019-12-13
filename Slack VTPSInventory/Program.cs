@@ -26,6 +26,11 @@ namespace VTPSInventory
 
         public Form1()
         {
+
+        }
+
+        static void Main(string[] args)
+        {
             GoogleCredential credential;
             using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
@@ -39,15 +44,6 @@ namespace VTPSInventory
                 HttpClientInitializer = credential,
                 ApplicationName = ApplicationName,
             });
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        void ReadEntries()
-        {
             var range = $"{sheet}!A:B";
             SpreadsheetsResource.ValuesResource.GetRequest request =
                     service.Spreadsheets.Values.Get(SpreadsheetId, range);
@@ -58,14 +54,10 @@ namespace VTPSInventory
             {
                 foreach (var row in values)
                 {
-
+                    Console.Write(row[0]);
                 }
             }
-        }
-
-        private void searchButton_Click(object sender, EventArgs e)
-        {
-            ReadEntries();
+            Console.ReadKey();
         }
     }
 }
