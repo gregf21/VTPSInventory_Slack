@@ -10,6 +10,7 @@ namespace Slack_VTPSInventory
     {
         static void Main(string[] args)
         {
+
         }
     }
 }
