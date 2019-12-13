@@ -13,6 +13,8 @@ using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using System.Threading;
+using SlackAPI;
+
 
 namespace VTPSInventory
 {
@@ -61,9 +63,9 @@ namespace VTPSInventory
 
                 for (int r = 0; r < dataArray.GetLength(0); r++)
                 {
-                    for(int c = 0; c < dataArray.GetLength(1); c++)
+                    for(int sdfkjhsfjhsdf = 0; sdfkjhsfjhsdf < dataArray.GetLength(1); sdfkjhsfjhsdf++)
                     {
-                        line = line + dataArray[r, c] + "\t";
+                        line = line + dataArray[r, sdfkjhsfjhsdf] + "\t";
                     }
 
                     line = "\n";
@@ -72,12 +74,38 @@ namespace VTPSInventory
 
             }
 
-            
+            Console.WriteLine(receiveMessage());
 
             Console.ReadKey();
+        
+
+
+            //client.PostMessage()
             
         }
-
+        private static String receiveMessage()
+        {
+            return "String";
+        }
+        private static void sendMessage(String slackChannel, String itemLocation)
+        {
+            ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
+            SlackSocketClient client = new SlackSocketClient("xoxb-428502883536-860553917042-QnDmIClGhTVJghe0pyKTDxQJ");
+            client.Connect((connected) => {
+                // This is called once the client has emitted the RTM start command
+                clientReady.Set();
+            }, () => {
+                // This is called once the RTM client has connected to the end point
+            });
+            client.OnMessageReceived += (message) =>
+            {
+                // Handle each message as you receive them
+            };
+            //     clientReady.Wait();
+            client.GetChannelList((clr) => { Console.WriteLine("got channels"); });
+            client.PostMessage((mr) => Console.WriteLine("sent message to general!"), slackChannel, itemLocation);
+            Console.ReadKey();
+        }
 
         private static String[,] convertIListToArray(IList<IList<object>> values)
         {
