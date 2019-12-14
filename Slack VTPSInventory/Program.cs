@@ -32,6 +32,8 @@ namespace VTPSInventory
         static SlackSocketClient client;
         static ManualResetEventSlim clientReady;
 
+        static String[,] inventoryData;
+
 
         public Form1()
         {
@@ -42,63 +44,22 @@ namespace VTPSInventory
         {
             //decrypt the token for github purposes
             String token = decryptToken(encryptedToken);
-
-            /*
-            GoogleCredential credential;
-            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
-            {
-                credential = GoogleCredential.FromStream(stream)
-                    .CreateScoped(Scopes);
-            }
-
-            // Create Google Sheets API service.
-            service = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = ApplicationName,
-            });
-            var range = $"{sheet}!A:B";
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                    service.Spreadsheets.Values.Get(SpreadsheetId, range);
-
-            var response = request.Execute();
-            IList<IList<object>> values = response.Values;
-            String[,] dataArray;
-            if (values != null && values.Count > 0)
-            {
-                dataArray = convertIListToArray(values);
+            grabInventoryData();
 
 
-                //Work within this big ass statement
-                String line = "";
-
-                for (int r = 0; r < dataArray.GetLength(0); r++)
-                {
-                    for(int sdfkjhsfjhsdf = 0; sdfkjhsfjhsdf < dataArray.GetLength(1); sdfkjhsfjhsdf++)
-                    {
-                        line = line + dataArray[r, sdfkjhsfjhsdf] + "\t";
-                    }
-
-                    line = "\n";
-
-                }
-
-            }
-
-        */
             setUpClient(token);
             setUpClientReady();
             while (checkClientReady())
             {
                 //do nothing until client is ready
             }
-            sendMessage(token, "a", "Online");
+            sendMessage(token, sheet, "Online");
 
             while (true)
             {
                 client.OnMessageReceived += (message) =>
                 {
-                    sendMessage(token, "a", message.text);
+                    sendMessage(token, sheet, message.text);
                     Console.WriteLine(message.text);
                 };
                 setUpClient(token);
@@ -109,14 +70,16 @@ namespace VTPSInventory
                 }
             }
         }
-        private static void sendMessage(String token, String slackChannel, String itemLocation)
+        private static void sendMessage(String token, String slackChannel, String item)
         {
             new Thread(() =>
             {
                 Thread.CurrentThread.IsBackground = true;
                 /* run your code here */
-                client.GetChannelList((clr) => { Console.WriteLine("got channels"); });
-                client.PostMessage((mr) => Console.WriteLine("posted message"), slackChannel, itemLocation);
+                findItemData(item);
+
+                client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
+                client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data"), slackChannel, item);
             }).Start();
             
         }
@@ -182,6 +145,41 @@ namespace VTPSInventory
             clientReady.Wait();
             return !clientReady.IsSet;
         }
+        private static void grabInventoryData()
+        {
+            GoogleCredential credential;
+            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
+            {
+                credential = GoogleCredential.FromStream(stream)
+                    .CreateScoped(Scopes);
+            }
+
+            // Create Google Sheets API service.
+            service = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = ApplicationName,
+            });
+            var range = $"{sheet}!A:B";
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                service.Spreadsheets.Values.Get(SpreadsheetId, range);
+
+            var response = request.Execute();
+            IList<IList<object>> values = response.Values;
+            inventoryData = convertIListToArray(values);
+        }
+
+        private static String[] findItemData(String item)
+        {
+            String[] dataArray = new String[inventoryData.GetLength(1)];
+            String currentItem;
+
+            for (int r = 1; r < inventoryData.GetLength(0); r++)
+            {
+                currentItem = inventoryData[r, 0];
+                
+            }
+            return dataArray;
+        }
     }
-    
 }
