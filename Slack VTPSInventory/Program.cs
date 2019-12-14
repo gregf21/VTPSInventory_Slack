@@ -90,7 +90,7 @@ namespace VTPSInventory
         private static void sendMessage(String slackChannel, String itemLocation)
         {
             ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
-            SlackSocketClient client = new SlackSocketClient("xoxb-428502883536-873105840420-l0FWu58ZVllXbbk9nz2ats6j");
+            SlackSocketClient client = new SlackSocketClient("xoxb-428502883536-873105840420-HGCoHY2HfQfHHQRvo9I5y07h");
             client.Connect((connected) => { 
                 // This is called once the client has emitted the RTM start command
                 clientReady.Set();
