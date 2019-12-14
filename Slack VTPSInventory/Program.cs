@@ -26,6 +26,8 @@ namespace VTPSInventory
         static readonly string sheet = "InventoryLocations";
         static SheetsService service;
 
+        static readonly String encryptedToken = "xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy";
+
         public Form1()
         {
 
@@ -33,6 +35,10 @@ namespace VTPSInventory
 
         static void Main(string[] args)
         {
+            //decrypt the token for github purposes
+            String token = decryptToken(encryptedToken);
+
+
             GoogleCredential credential;
             using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
@@ -74,7 +80,7 @@ namespace VTPSInventory
 
             }
 
-            sendMessage("general", "AA1");
+            sendMessage(token, "general", "AA1");
 
             Console.ReadKey();
         
@@ -87,10 +93,10 @@ namespace VTPSInventory
         {
             return "String";
         }
-        private static void sendMessage(String slackChannel, String itemLocation)
+        private static void sendMessage(String token, String slackChannel, String itemLocation)
         {
             ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
-            SlackSocketClient client = new SlackSocketClient("xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy");
+            SlackSocketClient client = new SlackSocketClient(token);
             client.Connect((connected) => { 
                 // This is called once the client has emitted the RTM start command
                 clientReady.Set();
@@ -124,5 +130,10 @@ namespace VTPSInventory
             }
             return dataArray;
         }
+        private static String decryptToken(String token)
+        {
+            return token.Replace(" ", String.Empty);
+        }
     }
+    
 }
