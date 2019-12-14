@@ -96,24 +96,18 @@ namespace VTPSInventory
 
             while (true)
             {
+                client.OnMessageReceived += (message) =>
+                {
+                    sendMessage(token, "a", message.text);
+                    Console.WriteLine(message.text);
+                };
                 setUpClient(token);
                 setUpClientReady();
                 while (checkClientReady())
                 {
                     //do nothing until client is ready
                 }
-                client.OnMessageReceived += (message) =>
-                {
-                    sendMessage(token, "a", message.text);
-                };
-                
             }
-
-
-
-
-
-
         }
         private static void sendMessage(String token, String slackChannel, String itemLocation)
         {
@@ -188,7 +182,6 @@ namespace VTPSInventory
             clientReady.Wait();
             return !clientReady.IsSet;
         }
-
     }
     
 }
