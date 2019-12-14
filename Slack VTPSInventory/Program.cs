@@ -25,7 +25,7 @@ namespace VTPSInventory
         static readonly string SpreadsheetId = "14LTmOA1xTyFOZ0eHHOENEZzabqh5bnTXVgC6Zs_QZj4";
         static readonly string sheet = "InventoryLocations";
         static SheetsService service;
-
+        static readonly String botName = "<@URP33QQCC>";
         static readonly String encryptedToken = "xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy";
 
 
@@ -33,6 +33,8 @@ namespace VTPSInventory
         static ManualResetEventSlim clientReady;
 
         static String[,] inventoryData;
+
+        static String previousItem;
 
 
         public Form1()
@@ -45,7 +47,7 @@ namespace VTPSInventory
             //decrypt the token for github purposes
             String token = decryptToken(encryptedToken);
             grabInventoryData();
-
+            previousItem = "";
 
             setUpClient(token);
             setUpClientReady();
@@ -54,13 +56,18 @@ namespace VTPSInventory
                 //do nothing until client is ready
             }
             sendMessage(token, sheet, "Online");
-
+            String input = "";
             while (true)
             {
                 client.OnMessageReceived += (message) =>
                 {
-                    sendMessage(token, sheet, message.text);
-                    Console.WriteLine(message.text);
+                    input = message.text;
+
+                    if (checkBotCall(input) != "") 
+                        sendMessage(token, sheet, checkBotCall(input));
+                    Console.WriteLine(input);
+                    Console.WriteLine(checkBotCall(input));
+                    previousItem = checkBotCall(input);
                 };
                 setUpClient(token);
                 setUpClientReady();
@@ -76,10 +83,23 @@ namespace VTPSInventory
             {
                 Thread.CurrentThread.IsBackground = true;
                 /* run your code here */
-                findItemData(item);
+                if (item != "")
+                { }
+                    String[] tempData = findItemData(item);
 
-                client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
-                client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data"), slackChannel, item);
+                    if (tempData != null && previousItem != tempData[0])
+                    {
+                        String inventoryOutput = arrayToString(tempData);
+                        client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
+                        client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data"), slackChannel, inventoryOutput);
+                        previousItem = inventoryOutput;
+                    }
+                    else if (tempData == null)
+                    {
+                        client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
+                        client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data"), slackChannel, "Item not found.");
+                    }
+            
             }).Start();
             
         }
@@ -171,15 +191,93 @@ namespace VTPSInventory
 
         private static String[] findItemData(String item)
         {
-            String[] dataArray = new String[inventoryData.GetLength(1)];
+            int maxSimilarLetters = 0, maxSimilarOrder = 0, similarLetters, similarOrder;
+
+            String[] dataArray = null;
             String currentItem;
+
+            item = item.ToLower();
 
             for (int r = 1; r < inventoryData.GetLength(0); r++)
             {
-                currentItem = inventoryData[r, 0];
-                
+                if (inventoryData[r, 0] != null)
+                {
+                    currentItem = inventoryData[r, 0].ToLower();
+                    similarLetters = 0;
+                    similarOrder = 0;
+
+                    if (item == currentItem)
+                    {
+                        dataArray = convert2DRowTo1DArray(r);
+                        break;
+                    }
+
+                    for (int i = 0; i < item.Length; i++)
+                    {
+                        for (int i2 = 0; i2 < currentItem.Length; i2++)
+                        {
+                            if (item.Substring(i, 1) == currentItem.Substring(i2, 1))
+                            {
+                                similarLetters++;
+                            }
+                            if (item.Contains(currentItem.Substring(0, i2 + 1)) && currentItem.Length <= item.Length)
+                            {
+                                similarOrder = i2 + 1;
+                            }
+                        }
+                    }
+
+
+                    if (similarLetters > maxSimilarLetters)
+                    {
+                        maxSimilarLetters = similarLetters;
+                        maxSimilarOrder = similarOrder;
+                        dataArray = convert2DRowTo1DArray(r);
+                    }
+                    else if (similarLetters == maxSimilarLetters && similarOrder > maxSimilarOrder)
+                    {
+                        maxSimilarOrder = similarOrder;
+                        dataArray = convert2DRowTo1DArray(r);
+                    }
+                }
             }
             return dataArray;
+        }
+
+        private static String[] convert2DRowTo1DArray(int row)
+        {
+            String[] tempData = new String[inventoryData.GetLength(1)];
+            for(int c = 0; c < inventoryData.GetLength(1); c++)
+            {
+                tempData[c] = inventoryData[row, c];
+            }
+            return tempData;
+
+        }
+
+        private static String arrayToString(String[] data)
+        {
+            String temp = "";
+            for(int i = 0; i < data.Length; i++)
+            {
+                if (data[i] == null)
+                    temp += "null\n";
+                else
+                    temp += data[i] + "\n";
+            }
+
+            return temp;
+        }
+
+        private static String checkBotCall(String input)
+        {
+            String item = "";
+            if (input.Length > botName.Length + 1)
+            {
+                if(input.Substring(0, botName.Length) == botName)
+                    item = input.Substring(botName.Length + 1);
+            }
+            return item;
         }
     }
 }
