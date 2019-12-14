@@ -81,54 +81,43 @@ namespace VTPSInventory
             }
 
 
+
+            sendMessage(token, "general", "TEST");
             
-
-            String temp = "";
-            while (temp == "")
+            while (true)
             {
-                temp = receiveMessage(token);
-                
+                ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
+                SlackSocketClient client = new SlackSocketClient(token);
+                client.Connect((connected) => {
+                    // This is called once the client has emitted the RTM start command
+                    clientReady.Set();
+                }, () => {
+                    // This is called once the RTM client has connected to the end point
+                });
+                client.Connect((connected) => {
+                    // This is called once the client has emitted the RTM start command
+                    clientReady.Set();
+                }, () => {
+                    // This is called once the RTM client has connected to the end point
+                });
+
+                //String temp = "";
+                client.OnMessageReceived += (message) =>
+                {
+                    Console.WriteLine(message.text);
+                    //sendMessage(token, "general", message.text);
+                };
+
+                GC.Collect();
             }
-            Console.WriteLine(temp);
-
-
-
-
-            //while (true) {
-            //    sendMessage(token, "general", "you gaeeeeeeeeeeee");
-
-            //}
-
-
-
-
-            //client.PostMessage()
+            //Console.WriteLine(newMessage);
+            
 
         }
         private static String receiveMessage(String token)
         {
-
-            ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
-            SlackSocketClient client = new SlackSocketClient(token);
-            client.Connect((connected) => {
-                // This is called once the client has emitted the RTM start command
-                clientReady.Set();
-            }, () => {
-                // This is called once the RTM client has connected to the end point
-            });
-            client.Connect((connected) => {
-                // This is called once the client has emitted the RTM start command
-                clientReady.Set();
-            }, () => {
-                // This is called once the RTM client has connected to the end point
-            });
-
-            //String temp = "";
-            client.OnMessageReceived += (message) =>
-            {
-                Console.WriteLine(message.text);
-            };
             return "";
+            
         }
         private static void sendMessage(String token, String slackChannel, String itemLocation)
         {
@@ -147,6 +136,8 @@ namespace VTPSInventory
             //     clientReady.Wait();
             client.GetChannelList((clr) => { Console.WriteLine(""); });
             client.PostMessage((mr) => Console.WriteLine(""), slackChannel, itemLocation);
+
+
         }
 
         private static String[,] convertIListToArray(IList<IList<object>> values)
