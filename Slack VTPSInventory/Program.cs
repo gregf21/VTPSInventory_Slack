@@ -28,6 +28,11 @@ namespace VTPSInventory
 
         static readonly String encryptedToken = "xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy";
 
+
+        static SlackSocketClient client;
+        static ManualResetEventSlim clientReady;
+
+
         public Form1()
         {
 
@@ -38,7 +43,7 @@ namespace VTPSInventory
             //decrypt the token for github purposes
             String token = decryptToken(encryptedToken);
 
-
+            /*
             GoogleCredential credential;
             using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
@@ -80,64 +85,46 @@ namespace VTPSInventory
 
             }
 
+        */
+            setUpClient(token);
+            setUpClientReady();
+            while (checkClientReady())
+            {
+                //do nothing until client is ready
+            }
+            sendMessage(token, "a", "Online");
 
-
-            sendMessage(token, "general", "TEST");
-            
             while (true)
             {
-                ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
-                SlackSocketClient client = new SlackSocketClient(token);
-                client.Connect((connected) => {
-                    // This is called once the client has emitted the RTM start command
-                    clientReady.Set();
-                }, () => {
-                    // This is called once the RTM client has connected to the end point
-                });
-                client.Connect((connected) => {
-                    // This is called once the client has emitted the RTM start command
-                    clientReady.Set();
-                }, () => {
-                    // This is called once the RTM client has connected to the end point
-                });
-
-                //String temp = "";
+                setUpClient(token);
+                setUpClientReady();
+                while (checkClientReady())
+                {
+                    //do nothing until client is ready
+                }
                 client.OnMessageReceived += (message) =>
                 {
-                    Console.WriteLine(message.text);
-                    //sendMessage(token, "general", message.text);
+                    sendMessage(token, "a", message.text);
                 };
-
-                GC.Collect();
+                
             }
-            //Console.WriteLine(newMessage);
-            
 
-        }
-        private static String receiveMessage(String token)
-        {
-            return "";
-            
+
+
+
+
+
         }
         private static void sendMessage(String token, String slackChannel, String itemLocation)
         {
-            ManualResetEventSlim clientReady = new ManualResetEventSlim(false);
-            SlackSocketClient client = new SlackSocketClient(token);
-            client.Connect((connected) => {
-                // This is called once the client has emitted the RTM start command
-                clientReady.Set();
-            }, () => {
-                // This is called once the RTM client has connected to the end point
-            });
-            client.OnMessageReceived += (message) =>
+            new Thread(() =>
             {
-                // Handle each message as you receive them
-            };
-            //     clientReady.Wait();
-            client.GetChannelList((clr) => { Console.WriteLine(""); });
-            client.PostMessage((mr) => Console.WriteLine(""), slackChannel, itemLocation);
-
-
+                Thread.CurrentThread.IsBackground = true;
+                /* run your code here */
+                client.GetChannelList((clr) => { Console.WriteLine("got channels"); });
+                client.PostMessage((mr) => Console.WriteLine("posted message"), slackChannel, itemLocation);
+            }).Start();
+            
         }
 
         private static String[,] convertIListToArray(IList<IList<object>> values)
@@ -161,6 +148,47 @@ namespace VTPSInventory
         {
             return token.Replace(" ", String.Empty);
         }
+
+        private static bool setUpClient(String token)
+        {
+            try
+            {
+                client = new SlackSocketClient(token);
+                return true;
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                return false;
+            }
+        }
+
+        private static bool setUpClientReady()
+        {
+            try
+            {
+                clientReady = new ManualResetEventSlim(false);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                return false;
+            }   
+        }
+
+        private static bool checkClientReady()
+        {
+            client.Connect((connected) => {
+                // This is called once the client has emitted the RTM start command
+                clientReady.Set();
+            }, () => {
+                // This is called once the RTM client has connected to the end point
+            });
+            clientReady.Wait();
+            return !clientReady.IsSet;
+        }
+
     }
     
 }
