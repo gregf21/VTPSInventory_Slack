@@ -14,6 +14,7 @@ using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using System.Threading;
 using SlackAPI;
+using System.Net;
 
 
 namespace VTPSInventory
@@ -27,7 +28,7 @@ namespace VTPSInventory
         static SheetsService service;
         static readonly String botName = "<@URP33QQCC>";
         static readonly String encryptedToken = "xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy";
-
+        public static String decryptedToken = null;
 
         static SlackSocketClient client;
         static ManualResetEventSlim clientReady;
@@ -45,36 +46,124 @@ namespace VTPSInventory
         static void Main(string[] args)
         {
             //decrypt the token for github purposes
-            String token = decryptToken(encryptedToken);
+            String decryptedToken = decryptToken(encryptedToken);
+            String token = decryptedToken;
             grabInventoryData();
             previousItem = "";
-
             setUpClient(token);
             setUpClientReady();
             while (checkClientReady())
             {
                 //do nothing until client is ready
             }
-            sendMessage(token, sheet, "Online");
-            String input = "";
-            while (true)
+            setUpClient(token);
+            setUpClientReady();
+            while (checkClientReady())
             {
-                client.OnMessageReceived += (message) =>
-                {
-                    input = message.text;
+                //do nothing until client is ready
+            }
+            StartServer();
+            Console.WriteLine("Press Enter to Exit...");
+            Console.ReadLine();
+        }
+        public static void StartServer()
+        {
+            var httpListener = new HttpListener();
+            string hostName = Dns.GetHostName();
+            var simpleServer = new SimpleServer(httpListener, "http://" + Dns.GetHostByName(hostName).AddressList[0].ToString() + ":1234/test/", ProcessYourResponse);
+            simpleServer.Start();
+        }
+        private static string[] ParseInput(string input)
+        {
+            //0: User
+            //1: Message Text
+            //2: Slack Channel
+            string[] message = new string[3];
+            int userIndex = input.LastIndexOf(@"""user"":");
+            while (input[userIndex] != ':')
+            {
+                userIndex++;
+            }
+            while (input[userIndex] != '"')
+            {
+                userIndex++;
+            }
+            userIndex++;
+            int indexend = userIndex;
+            while (input[indexend] != '"')
+            {
+                message[0] += input[indexend];
+                indexend++;
+            }
 
-                    if (checkBotCall(input) != "") 
-                        sendMessage(token, sheet, checkBotCall(input));
-                    Console.WriteLine(input);
-                    Console.WriteLine(checkBotCall(input));
-                    previousItem = checkBotCall(input);
-                };
-                setUpClient(token);
-                setUpClientReady();
-                while (checkClientReady())
+            int textIndex = input.LastIndexOf(@"""text"":");
+            while (input[textIndex] != ':')
+            {
+                textIndex++;
+            }
+            while (input[textIndex] != '"')
+            {
+                textIndex++;
+            }
+            textIndex++;
+            int textIndexEnd = textIndex;
+            while (input[textIndexEnd] != '"')
+            {
+                message[1] += input[textIndexEnd];
+                textIndexEnd++;
+            }
+            message[1] = message[1].Remove(0, 1);
+
+            int channelIndex = input.LastIndexOf(@"""channel"":");
+            while (input[channelIndex] != ':')
+            {
+                channelIndex++;
+            }
+            while (input[channelIndex] != '"')
+            {
+                channelIndex++;
+            }
+            channelIndex++;
+            int channelIndexEnd = channelIndex;
+            while (input[channelIndexEnd] != '"')
+            {
+                message[2] += input[channelIndexEnd];
+                channelIndexEnd++;
+            }
+            return message;
+        }
+        public static byte[] ProcessYourResponse(string input)
+        {
+            byte[] response;
+            if (input.LastIndexOf(@"challenge") != -1 && input.LastIndexOf(@"token") != -1)
+            {
+                int index = input.LastIndexOf(@"challenge");
+                while (input[index] != ':')
                 {
-                    //do nothing until client is ready
+                    index++;
                 }
+                while (input[index] != '"')
+                {
+                    index++;
+                }
+                index++;
+                int indexend = index;
+                string challenge = "";
+                while (input[indexend] != '"')
+                {
+                    challenge += input[indexend];
+                    indexend++;
+                }
+                response = Encoding.ASCII.GetBytes("HTTP 200 OK\nContent-type: te / plain\n" + challenge);
+                return response;
+            }
+            else
+            {
+                response = Encoding.ASCII.GetBytes("Received");
+                string[] message = ParseInput(input);
+                Console.WriteLine("User: " + message[0]);
+                sendMessage(decryptedToken, message[2], message[1]);
+                return response;
             }
         }
         private static void sendMessage(String token, String slackChannel, String item)
@@ -91,13 +180,15 @@ namespace VTPSInventory
                     {
                         String inventoryOutput = arrayToString(tempData);
                         client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
-                        client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data"), slackChannel, inventoryOutput);
+                        Console.WriteLine("Search for: " + item);
+                        client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data to: " + slackChannel + "\nInventory: " + inventoryOutput), slackChannel, inventoryOutput);
                         previousItem = inventoryOutput;
                     }
                     else if (tempData == null)
                     {
                         client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
-                        client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data"), slackChannel, "Item not found.");
+                    Console.WriteLine("Search for: " + item);
+                    client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data to: " + slackChannel + "\nInventory: " + "Item not found"), slackChannel, "Item not found.");
                     }
             
             }).Start();
@@ -197,7 +288,6 @@ namespace VTPSInventory
             String currentItem;
 
             item = item.ToLower();
-
             for (int r = 1; r < inventoryData.GetLength(0); r++)
             {
                 if (inventoryData[r, 0] != null)
@@ -268,7 +358,6 @@ namespace VTPSInventory
 
             return temp;
         }
-
         private static String checkBotCall(String input)
         {
             String item = "";
