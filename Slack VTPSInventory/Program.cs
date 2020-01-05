@@ -49,6 +49,7 @@ namespace VTPSInventory
             String decryptedToken = decryptToken(encryptedToken);
             String token = decryptedToken;
             grabInventoryData();
+            Console.WriteLine("Got Inventory Data");
             previousItem = "";
             setUpClient(token);
             setUpClientReady();
@@ -62,6 +63,7 @@ namespace VTPSInventory
             {
                 //do nothing until client is ready
             }
+            Console.WriteLine("Client is Ready");
             StartServer();
             Console.WriteLine("Press Enter to Exit...");
             Console.ReadLine();
@@ -72,6 +74,7 @@ namespace VTPSInventory
             string hostName = Dns.GetHostName();
             var simpleServer = new SimpleServer(httpListener, "http://" + Dns.GetHostByName(hostName).AddressList[0].ToString() + ":1234/test/", ProcessYourResponse);
             simpleServer.Start();
+            Console.WriteLine("Server Started :: IP Address is " + Dns.GetHostByName(hostName).AddressList[0].ToString());
         }
         private static string[] ParseInput(string input)
         {
@@ -162,11 +165,11 @@ namespace VTPSInventory
                 response = Encoding.ASCII.GetBytes("Received");
                 string[] message = ParseInput(input);
                 Console.WriteLine("User: " + message[0]);
-                sendMessage(decryptedToken, message[2], message[1]);
+                sendMessage(decryptedToken, message[2], message[1], message[0]);
                 return response;
             }
         }
-        private static void sendMessage(String token, String slackChannel, String item)
+        private static void sendMessage(String token, String slackChannel, String item, String user)
         {
             new Thread(() =>
             {
@@ -176,15 +179,15 @@ namespace VTPSInventory
                 { }
                     String[] tempData = findItemData(item);
 
-                    if (tempData != null && previousItem != tempData[0])
-                    {
-                        String inventoryOutput = arrayToString(tempData);
-                        client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
-                        Console.WriteLine("Search for: " + item);
-                        client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data to: " + slackChannel + "\nInventory: " + inventoryOutput), slackChannel, inventoryOutput);
-                        previousItem = inventoryOutput;
-                    }
-                    else if (tempData == null)
+            if (tempData[0] != "" && previousItem != tempData[0])
+            {
+                String inventoryOutput = arrayToString(tempData);
+                client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
+                Console.WriteLine("Search for: " + item);
+                client.PostMessage((mr) => Console.WriteLine("Posted Inventory Data to: " + slackChannel + "\nInventory: " + inventoryOutput), slackChannel, "<@" + user + ">\n" + inventoryOutput);
+                previousItem = inventoryOutput;
+            }
+            else if (tempData[0] == "" && tempData[1] == "")
                     {
                         client.GetChannelList((clr) => { Console.WriteLine("Got Channels"); });
                     Console.WriteLine("Search for: " + item);
@@ -282,6 +285,73 @@ namespace VTPSInventory
 
         private static String[] findItemData(String item)
         {
+            string[] dataArray = { "", "" };
+            for (int i = 0; i < inventoryData.GetLength(0); i++)
+            {
+                for (int r = 0; r < 2; r++)
+                {
+                    if (inventoryData[i,0] != null && inventoryData[i, 1] != null)
+                    {
+                        if ((inventoryData[i, 0].ToLower().Contains(item.ToLower())))
+                        {
+                            dataArray[0] = inventoryData[i, 0];
+                            dataArray[1] = inventoryData[i, 1];
+                        }
+                    }
+                }
+            }
+            //EASTER EGGS
+            if (item.ToLower() == "greg fairbanks")
+            {
+                dataArray[0] = "My creator!";
+                dataArray[1] = "";
+            }
+            if (item.ToLower() == "help")
+            {
+                dataArray[0] = "Post a message like this and I will respond with a location:\n@inventorybot [ITEM]";
+                dataArray[1] = "";
+            }
+            if(item.ToLower().Contains("make me a sandwich"))
+            {
+                dataArray[0] = "Poof. You're a sandwich.";
+                dataArray[1] = "";
+            }
+            if (item.ToLower().Contains("ain't nobody got time for that") || item.ToLower().Contains("aint nobody got time for that"))
+            {
+                dataArray[0] = "Truth.";
+                dataArray[1] = "";
+            }
+            if (item.ToLower().Contains("do you know morse code"))
+            {
+                dataArray[0] = "-. ---";
+                dataArray[1] = "";
+            }
+            if (item.ToLower().Contains("here comes dat boi"))
+            {
+                dataArray[0] = "Oh Shoot.\nWaddup?!";
+                dataArray[1] = "";
+            }
+            if(item.ToLower().Contains("more cowbell"))
+            {
+                dataArray[0] = "You always need more cowbell.";
+                dataArray[1] = "";
+            }
+            if (item.ToLower().Contains("lets play a game") || item.ToLower().Contains("let's play a game"))
+            {
+                dataArray[0] = "Let's play hide and seek in the warehouse!";
+                dataArray[1] = "";
+            }
+            if (item.ToLower() == "meow" || item.ToLower() == "meow" || item.ToLower() == "woof" || item.ToLower() == "roar" ||
+                item.ToLower() == "oink" || item.ToLower() == "neigh")
+            {
+                dataArray[0] = item;
+                dataArray[1] = "";
+            }
+            return dataArray;
+        }
+        /*
+        private static String[] findItemData(String item)
+        {
             int maxSimilarLetters = 0, maxSimilarOrder = 0, similarLetters, similarOrder;
 
             String[] dataArray = null;
@@ -333,7 +403,7 @@ namespace VTPSInventory
             }
             return dataArray;
         }
-
+        */
         private static String[] convert2DRowTo1DArray(int row)
         {
             String[] tempData = new String[inventoryData.GetLength(1)];
