@@ -25,6 +25,9 @@ namespace VTPSInventory
         static readonly string ApplicationName = "InventoryLocations";
         static readonly string SpreadsheetId = "14LTmOA1xTyFOZ0eHHOENEZzabqh5bnTXVgC6Zs_QZj4";
         static readonly string sheet = "InventoryLocations";
+        static readonly string ApplicationName2 = "Easter Eggs";
+        static readonly string SpreadsheetId2 = "11gf2P1se6anHX--EfGq9KfbW-QJzpvl_4FBioN8YRF0";
+        static readonly string sheet2 = "EasterEggs";
         static SheetsService service;
         static readonly String botName = "<@URP33QQCC>";
         static readonly String encryptedToken = "xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy";
@@ -34,6 +37,7 @@ namespace VTPSInventory
         static ManualResetEventSlim clientReady;
 
         static String[,] inventoryData;
+        static String[,] inventoryData2;
 
         static String previousItem;
 
@@ -50,6 +54,8 @@ namespace VTPSInventory
             String token = decryptedToken;
             grabInventoryData();
             Console.WriteLine("Got Inventory Data");
+            grabEasterEggs();
+            Console.WriteLine("Got Easter Eggs");
             previousItem = "";
             setUpClient(token);
             setUpClientReady();
@@ -259,6 +265,29 @@ namespace VTPSInventory
             clientReady.Wait();
             return !clientReady.IsSet;
         }
+        private static void grabEasterEggs()
+        {
+            GoogleCredential credential;
+            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
+            {
+                credential = GoogleCredential.FromStream(stream)
+                    .CreateScoped(Scopes);
+            }
+
+            // Create Google Sheets API service.
+            service = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = ApplicationName2,
+            });
+            var range = $"{sheet2}!A:B";
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                service.Spreadsheets.Values.Get(SpreadsheetId2, range);
+
+            var response = request.Execute();
+            IList<IList<object>> values = response.Values;
+            inventoryData2 = convertIListToArray(values);
+        }
         private static void grabInventoryData()
         {
             GoogleCredential credential;
@@ -300,110 +329,33 @@ namespace VTPSInventory
                     }
                 }
             }
-            //EASTER EGGS
-            if (item.ToLower() == "greg fairbanks")
+            if (dataArray[0] == "" && dataArray[1] == "")
             {
-                dataArray[0] = "My creator!";
-                dataArray[1] = "";
-            }
-            if (item.ToLower() == "help")
-            {
-                dataArray[0] = "Post a message like this and I will respond with a location:\n@inventorybot [ITEM]";
-                dataArray[1] = "";
-            }
-            if(item.ToLower().Contains("make me a sandwich"))
-            {
-                dataArray[0] = "Poof. You're a sandwich.";
-                dataArray[1] = "";
-            }
-            if (item.ToLower().Contains("ain't nobody got time for that") || item.ToLower().Contains("aint nobody got time for that"))
-            {
-                dataArray[0] = "Truth.";
-                dataArray[1] = "";
-            }
-            if (item.ToLower().Contains("do you know morse code"))
-            {
-                dataArray[0] = "-. ---";
-                dataArray[1] = "";
-            }
-            if (item.ToLower().Contains("here comes dat boi"))
-            {
-                dataArray[0] = "Oh Shoot.\nWaddup?!";
-                dataArray[1] = "";
-            }
-            if(item.ToLower().Contains("more cowbell"))
-            {
-                dataArray[0] = "You always need more cowbell.";
-                dataArray[1] = "";
-            }
-            if (item.ToLower().Contains("lets play a game") || item.ToLower().Contains("let's play a game"))
-            {
-                dataArray[0] = "Let's play hide and seek in the warehouse!";
-                dataArray[1] = "";
-            }
-            if (item.ToLower() == "meow" || item.ToLower() == "meow" || item.ToLower() == "woof" || item.ToLower() == "roar" ||
-                item.ToLower() == "oink" || item.ToLower() == "neigh")
-            {
-                dataArray[0] = item;
-                dataArray[1] = "";
-            }
-            return dataArray;
-        }
-        /*
-        private static String[] findItemData(String item)
-        {
-            int maxSimilarLetters = 0, maxSimilarOrder = 0, similarLetters, similarOrder;
-
-            String[] dataArray = null;
-            String currentItem;
-
-            item = item.ToLower();
-            for (int r = 1; r < inventoryData.GetLength(0); r++)
-            {
-                if (inventoryData[r, 0] != null)
+                for (int i = 0; i < inventoryData2.GetLength(0); i++)
                 {
-                    currentItem = inventoryData[r, 0].ToLower();
-                    similarLetters = 0;
-                    similarOrder = 0;
-
-                    if (item == currentItem)
+                    for (int r = 0; r < 2; r++)
                     {
-                        dataArray = convert2DRowTo1DArray(r);
-                        break;
-                    }
-
-                    for (int i = 0; i < item.Length; i++)
-                    {
-                        for (int i2 = 0; i2 < currentItem.Length; i2++)
+                        if (inventoryData2[i, 0] != null && inventoryData2[i, 1] != null)
                         {
-                            if (item.Substring(i, 1) == currentItem.Substring(i2, 1))
+                            if ((item.ToLower().Contains(inventoryData2[i, 0].ToLower())))
                             {
-                                similarLetters++;
-                            }
-                            if (item.Contains(currentItem.Substring(0, i2 + 1)) && currentItem.Length <= item.Length)
-                            {
-                                similarOrder = i2 + 1;
+                                dataArray[0] = inventoryData2[i, 1];
+                                dataArray[1] = "";
                             }
                         }
                     }
-
-
-                    if (similarLetters > maxSimilarLetters)
-                    {
-                        maxSimilarLetters = similarLetters;
-                        maxSimilarOrder = similarOrder;
-                        dataArray = convert2DRowTo1DArray(r);
-                    }
-                    else if (similarLetters == maxSimilarLetters && similarOrder > maxSimilarOrder)
-                    {
-                        maxSimilarOrder = similarOrder;
-                        dataArray = convert2DRowTo1DArray(r);
-                    }
                 }
+            }
+            if(item == "UpdateAllInventoryData")
+            {
+                grabEasterEggs();
+                grabInventoryData();
+                Console.WriteLine("::::::::::Inventory Data Updated::::::::::");
+                dataArray[0] = "Inventory Data Updated";
+                dataArray[1] = "";
             }
             return dataArray;
         }
-        */
         private static String[] convert2DRowTo1DArray(int row)
         {
             String[] tempData = new String[inventoryData.GetLength(1)];
