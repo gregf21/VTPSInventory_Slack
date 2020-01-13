@@ -30,7 +30,7 @@ namespace VTPSInventory
         static readonly string sheet2 = "EasterEggs";
         static SheetsService service;
         static readonly String botName = "<@URP33QQCC>";
-        static readonly String encryptedToken = "xoxb - 428502883536 - 873105840420 - OZDHxvmy5psq1cQzWHmRvBpy";
+        static readonly String encryptedToken = "xoxb - 890489449315 - 901973447589 - zBGp4n1QpiQKHgXIlm1PTMj7";
         public static String decryptedToken = null;
 
         static SlackSocketClient client;
