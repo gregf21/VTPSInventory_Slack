@@ -78,9 +78,19 @@ namespace VTPSInventory
         {
             var httpListener = new HttpListener();
             string hostName = Dns.GetHostName();
-            var simpleServer = new SimpleServer(httpListener, "http://" + Dns.GetHostByName(hostName).AddressList[0].ToString() + ":1234/test/", ProcessYourResponse);
+            string url = "http://checkip.dyndns.org";
+            System.Net.WebRequest req = System.Net.WebRequest.Create(url);
+            System.Net.WebResponse resp = req.GetResponse();
+            System.IO.StreamReader sr = new System.IO.StreamReader(resp.GetResponseStream());
+            string response = sr.ReadToEnd().Trim();
+            string[] a = response.Split(':');
+            string a2 = a[1].Substring(1);
+            string[] a3 = a2.Split('<');
+            string a4 = a3[0];
+            var simpleServer = new SimpleServer(httpListener, "http://10.9.32.178:23589/", ProcessYourResponse);
             simpleServer.Start();
-            Console.WriteLine("Server Started :: IP Address is " + Dns.GetHostByName(hostName).AddressList[0].ToString());
+            //Dns.GetHostByName(hostName).AddressList[0].ToString()
+            Console.WriteLine("Server Started :: IP Address is http://10.9.32.178:23589/");
         }
         private static string[] ParseInput(string input)
         {

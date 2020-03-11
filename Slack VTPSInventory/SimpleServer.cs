@@ -29,8 +29,9 @@ public class SimpleServer
     {
         if (listener.IsListening)
             return;
-
+        //listener.Prefixes.Add("http://45.3.81.145:1234        
         listener.Start();
+
 
         for (int i = 0; i < HandlerThread; i++)
         {
